@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Unions in output messages show with new syntax
+- Return type is `None` by default unless def is untyped
 
 ## [1.0.0]
 ### Added

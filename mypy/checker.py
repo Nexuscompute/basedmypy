@@ -1095,16 +1095,13 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
             if fdef.type is None and self.options.disallow_untyped_defs:
                 if (not fdef.arguments or (len(fdef.arguments) == 1 and
                         (fdef.arg_names[0] == 'self' or fdef.arg_names[0] == 'cls'))):
-                    self.fail(message_registry.RETURN_TYPE_EXPECTED, fdef)
-                    if not has_return_statement(fdef) and not fdef.is_generator:
-                        self.note('Use "-> None" if function does not return a value', fdef,
-                                  code=codes.NO_UNTYPED_DEF)
+                    fdef.type = CallableType([], [], [], NoneType(), self.named_type('builtins.function'))
                 else:
                     self.fail(message_registry.FUNCTION_TYPE_EXPECTED, fdef)
             elif isinstance(fdef.type, CallableType):
                 ret_type = get_proper_type(fdef.type.ret_type)
                 if is_unannotated_any(ret_type):
-                    self.fail(message_registry.RETURN_TYPE_EXPECTED, fdef)
+                    fdef.type.ret_type = NoneType()
                 elif fdef.is_generator:
                     if is_unannotated_any(self.get_generator_return_type(ret_type,
                                                                          fdef.is_coroutine)):
@@ -1114,6 +1111,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                         self.fail(message_registry.RETURN_TYPE_EXPECTED, fdef)
                 if any(is_unannotated_any(t) for t in fdef.type.arg_types):
                     self.fail(message_registry.ARGUMENT_TYPE_EXPECTED, fdef)
+        else:
+            fdef.type.ret_type = NoneType()
 
     def check___new___signature(self, fdef: FuncDef, typ: CallableType) -> None:
         self_type = fill_typevars_with_any(fdef.info)
