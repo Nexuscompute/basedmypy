@@ -1100,7 +1100,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                         self.note('Use "-> None" if function does not return a value', fdef,
                                   code=codes.NO_UNTYPED_DEF)
                 else:
-                    self.fail(message_registry.FUNCTION_TYPE_EXPECTED, fdef)
+                    if not fdef.is_overload:
+                        self.fail(message_registry.FUNCTION_TYPE_EXPECTED, fdef)
             elif isinstance(fdef.type, CallableType):
                 ret_type = get_proper_type(fdef.type.ret_type)
                 if is_unannotated_any(ret_type):

@@ -541,6 +541,32 @@ class OverloadedFuncDef(FuncBase, SymbolNode, Statement):
 
     def __init__(self, items: List['OverloadPart']) -> None:
         super().__init__()
+
+        impl = items[-1]
+
+        # don't care about stubs
+        if isinstance(impl, Decorator):
+            impl = None
+
+        def is_unannotated_any(t) -> bool:
+            from mypy.types import ProperType, AnyType, TypeOfAny
+
+            if not isinstance(t, ProperType):
+                return False
+            return isinstance(t, AnyType) and t.type_of_any == TypeOfAny.unannotated
+
+        if impl and (impl.type or any(is_unannotated_any(t) for t in impl.type.arg_types)):
+            from mypy.types import UnionType
+            if impl.type and all(all(arg is ArgKind.ARG_POS for arg in ol.func.arg_kinds) for ol in items[:-1]):
+                impl.type.arg_types = [
+                    UnionType(ov.func.type.arg_types[i] for ov in items[:-1]) for i in range(len(impl.arguments))
+                ]
+        if impl and impl.type and is_unannotated_any(impl.type.ret_type):
+            from mypy.types import UnionType
+
+            impl.type.ret_type = UnionType(ov.func.type.ret_type for ov in items[:-1])
+
+            # TODO when impl.type is None
         self.items = items
         self.unanalyzed_items = items.copy()
         self.impl = None

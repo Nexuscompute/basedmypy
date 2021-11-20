@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Unions in output messages show with new syntax
+- Overload implementations don't require type annotations
 
 ## [1.0.0]
 ### Added
