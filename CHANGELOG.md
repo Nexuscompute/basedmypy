@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Unions in output messages show with new syntax
+- When `__future__.annotations`, all `typing`s are usable without imports 
 
 ## [1.0.0]
 ### Added

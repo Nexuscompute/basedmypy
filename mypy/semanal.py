@@ -2636,7 +2636,7 @@ class SemanticAnalyzer(NodeVisitor[None],
 
         pep_613 = False
         if s.unanalyzed_type is not None and isinstance(s.unanalyzed_type, UnboundType):
-            lookup = self.lookup(s.unanalyzed_type.name, s, suppress_errors=True)
+            lookup = self.lookup(s.unanalyzed_type.name, s, suppress_errors=True, annotation=True)
             if lookup and lookup.fullname in ("typing.TypeAlias", "typing_extensions.TypeAlias"):
                 pep_613 = True
         if s.unanalyzed_type is not None and not pep_613:
@@ -3351,7 +3351,7 @@ class SemanticAnalyzer(NodeVisitor[None],
     def is_classvar(self, typ: Type) -> bool:
         if not isinstance(typ, UnboundType):
             return False
-        sym = self.lookup_qualified(typ.name, typ)
+        sym = self.lookup_qualified(typ.name, typ, annotation=True)
         if not sym or not sym.node:
             return False
         return sym.node.fullname == 'typing.ClassVar'
@@ -3359,7 +3359,7 @@ class SemanticAnalyzer(NodeVisitor[None],
     def is_final_type(self, typ: Optional[Type]) -> bool:
         if not isinstance(typ, UnboundType):
             return False
-        sym = self.lookup_qualified(typ.name, typ)
+        sym = self.lookup_qualified(typ.name, typ, annotation=True)
         if not sym or not sym.node:
             return False
         return sym.node.fullname in ('typing.Final', 'typing_extensions.Final')
@@ -4205,7 +4205,8 @@ class SemanticAnalyzer(NodeVisitor[None],
     #
 
     def lookup(self, name: str, ctx: Context,
-               suppress_errors: bool = False) -> Optional[SymbolTableNode]:
+               suppress_errors: bool = False,
+               annotation: bool = False) -> Optional[SymbolTableNode]:
         """Look up an unqualified (no dots) name in all active namespaces.
 
         Note that the result may contain a PlaceholderNode. The caller may
@@ -4261,6 +4262,22 @@ class SemanticAnalyzer(NodeVisitor[None],
                     return None
                 node = table[name]
                 return node
+        # 6. based
+        if annotation and (
+            self.is_future_flag_set("annotations")
+            or self.options.python_version >= (3, 11)
+        ):
+            # 6a. typing
+            table = self.modules["typing"].names
+            if name in table:
+                node = table[name]
+                return node
+            # 6b. implicit T
+            if name == "T":
+                return SymbolTableNode(
+                    GDEF,
+                    TypeVarExpr("T", "T", [], self.object_type())
+                )
         # Give up.
         if not implicit_name and not suppress_errors:
             self.name_not_defined(name, ctx)
@@ -4329,7 +4346,8 @@ class SemanticAnalyzer(NodeVisitor[None],
         return module_prefix(self.modules, fullname) == self.cur_mod_id
 
     def lookup_qualified(self, name: str, ctx: Context,
-                         suppress_errors: bool = False) -> Optional[SymbolTableNode]:
+                         suppress_errors: bool = False,
+                         annotation: bool = False) -> Optional[SymbolTableNode]:
         """Lookup a qualified name in all activate namespaces.
 
         Note that the result may contain a PlaceholderNode. The caller may
@@ -4341,10 +4359,10 @@ class SemanticAnalyzer(NodeVisitor[None],
         """
         if '.' not in name:
             # Simple case: look up a short name.
-            return self.lookup(name, ctx, suppress_errors=suppress_errors)
+            return self.lookup(name, ctx, suppress_errors=suppress_errors, annotation=annotation)
         parts = name.split('.')
         namespace = self.cur_mod_id
-        sym = self.lookup(parts[0], ctx, suppress_errors=suppress_errors)
+        sym = self.lookup(parts[0], ctx, suppress_errors=suppress_errors, annotation=annotation)
         if sym:
             for i in range(1, len(parts)):
                 node = sym.node

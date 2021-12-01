@@ -103,8 +103,10 @@ class Options:
         # File names, directory names or subpaths to avoid checking
         self.exclude: List[str] = []
 
+        # Based options
         self.write_baseline = False
         self.baseline_file = defaults.BASELINE_FILE
+        self.implicit_typing_globals = True
 
         # disallow_any options
         self.disallow_any_generics = True
