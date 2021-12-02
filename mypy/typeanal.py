@@ -451,12 +451,14 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         # check entirely.
         if isinstance(sym.node, Var) and sym.node.info and sym.node.info.is_enum:
             value = sym.node.name
-            base_enum_short_name = sym.node.info.name
-            if not defining_literal:
-                msg = message_registry.INVALID_TYPE_RAW_ENUM_VALUE.format(
-                    base_enum_short_name, value)
-                self.fail(msg, t)
-                return AnyType(TypeOfAny.from_error)
+            if not self.api.is_future_flag_set(
+                    "annotations") and not self.options.python_version >= (3, 11):
+                base_enum_short_name = sym.node.info.name
+                if not defining_literal:
+                    msg = message_registry.INVALID_TYPE_RAW_ENUM_VALUE.format(
+                        base_enum_short_name, value)
+                    self.fail(msg, t)
+                    return AnyType(TypeOfAny.from_error)
             return LiteralType(
                 value=value,
                 fallback=Instance(sym.node.info, [], line=t.line, column=t.column),
@@ -653,7 +655,12 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         # make signatures like "foo(x: 20) -> None" legal, we can change
         # this method so it generates and returns an actual LiteralType
         # instead.
-
+        if (
+            not self.api.is_future_flag_set("annotations")
+            and not self.options.python_version >= (3, 11)
+            and t.base_type_name in ('builtins.int', 'builtins.bool')
+        ):  # 'builtins.float', 'builtins.complex'):
+            return LiteralType(t.literal_value, self.named_type(t.base_type_name))
         if self.report_invalid_types:
             if t.base_type_name in ('builtins.int', 'builtins.bool'):
                 # The only time it makes sense to use an int or bool is inside of

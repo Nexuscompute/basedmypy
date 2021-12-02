@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Unions in output messages show with new syntax
+- Allow literal `int`, `bool` and `Enum`s without `Literal`
 
 ## [1.0.0]
 ### Added
