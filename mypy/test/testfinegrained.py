@@ -82,8 +82,11 @@ class FineGrainedSuite(DataSuite):
         with open(main_path, 'w', encoding='utf8') as f:
             f.write(main_src)
 
+        from mypy import options
+        options._based = False
         options = self.get_options(main_src, testcase, build_cache=False)
         build_options = self.get_options(main_src, testcase, build_cache=True)
+        options._based = True
         server = Server(options, DEFAULT_STATUS_FILE)
 
         num_regular_incremental_steps = self.get_build_steps(main_src)

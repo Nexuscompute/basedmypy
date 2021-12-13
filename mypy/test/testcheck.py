@@ -99,6 +99,10 @@ typecheck_files = [
     'check-formatting.test',
 ]
 
+based_type_check_files = [
+
+]
+
 # Tests that use Python 3.8-only AST features (like expression-scoped ignores):
 if sys.version_info >= (3, 8):
     typecheck_files.append('check-python38.test')
@@ -161,8 +165,12 @@ class TypeCheckSuite(DataSuite):
             # In runs 2+, copy *.[num] files to * files.
             perform_file_operations(operations)
 
+        # set mypy to legacy mode
+        from mypy import options
+        options._based = False
         # Parse options after moving files (in case mypy.ini is being moved).
         options = parse_options(original_program_text, testcase, incremental_step)
+        options._based = True
         options.use_builtins_fixtures = True
         options.show_traceback = True
 
