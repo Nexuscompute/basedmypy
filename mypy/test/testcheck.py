@@ -170,6 +170,7 @@ class TypeCheckSuite(DataSuite):
         options._based = False
         # Parse options after moving files (in case mypy.ini is being moved).
         options = parse_options(original_program_text, testcase, incremental_step)
+        print(options.warn_unused_ignores)
         options._based = True
         options.use_builtins_fixtures = True
         options.show_traceback = True
